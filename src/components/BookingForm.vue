@@ -1,11 +1,20 @@
 <script setup>
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { supabase } from '../lib/supabase'
 
 const form = reactive({
   name: '',
   phone: '',
   email: '',
-  selectedServices: [{ category: '', service: '', price: 0, time: '', specialist: '' }],
+      selectedServices: [{
+        category: '',
+        service: '',
+        service_id: null,
+        price: 0,
+        duration_minutes: 0,
+        time: '',
+        specialist_id: null
+      }],
   date: '',
   notes: ''
 })
@@ -13,85 +22,59 @@ const form = reactive({
 const isSubmitted = ref(false)
 const errors = ref({})
 
-const services = [
-  { category: "Hair Services", name: "Haircut", price: 1000 },
-  { category: "Hair Services", name: "Blow dry", price: 600 },
-  { category: "Hair Services", name: "Hair styling", price: 800 },
-  { category: "Hair Services", name: "Hair coloring", price: 2000 },
-  { category: "Hair Services", name: "Highlights", price: 2500 },
-  { category: "Hair Services", name: "Balayage", price: 3000 },
-  { category: "Hair Services", name: "Ombre", price: 2800 },
-  { category: "Hair Services", name: "Keratin treatment", price: 3500 },
-  { category: "Hair Services", name: "Hair botox", price: 3200 },
-  { category: "Hair Services", name: "Hair extensions", price: 4000 },
-  { category: "Hair Services", name: "Deep conditioning", price: 1200 },
-  { category: "Hair Services", name: "Scalp treatment", price: 1500 },
-  { category: "Nail Services", name: "Classic manicure", price: 800 },
-  { category: "Nail Services", name: "Classic pedicure", price: 1000 },
-  { category: "Nail Services", name: "Gel manicure", price: 1200 },
-  { category: "Nail Services", name: "Gel pedicure", price: 1400 },
-  { category: "Nail Services", name: "French manicure", price: 1000 },
-  { category: "Nail Services", name: "Acrylic nails", price: 1500 },
-  { category: "Nail Services", name: "Nail extensions", price: 1800 },
-  { category: "Nail Services", name: "Nail refill", price: 1200 },
-  { category: "Nail Services", name: "Nail art", price: 500 },
-  { category: "Nail Services", name: "Spa manicure", price: 1300 },
-  { category: "Nail Services", name: "Spa pedicure", price: 1600 },
-  { category: "Facial Treatments", name: "Classic facial", price: 1800 },
-  { category: "Facial Treatments", name: "Deep cleansing facial", price: 2000 },
-  { category: "Facial Treatments", name: "Hydrating facial", price: 1900 },
-  { category: "Facial Treatments", name: "Anti-aging facial", price: 2500 },
-  { category: "Facial Treatments", name: "Acne treatment", price: 2200 },
-  { category: "Facial Treatments", name: "Chemical peel", price: 2800 },
-  { category: "Facial Treatments", name: "Microdermabrasion", price: 3000 },
-  { category: "Lash & Brow", name: "Lash extensions (classic)", price: 1500 },
-  { category: "Lash & Brow", name: "Lash extensions (volume)", price: 1800 },
-  { category: "Lash & Brow", name: "Lash lift", price: 1200 },
-  { category: "Lash & Brow", name: "Lash tint", price: 500 },
-  { category: "Lash & Brow", name: "Brow shaping", price: 600 },
-  { category: "Lash & Brow", name: "Brow tint", price: 400 },
-  { category: "Lash & Brow", name: "Brow lamination", price: 1000 },
-  { category: "Body Treatments", name: "Relaxing massage", price: 1500 },
-  { category: "Body Treatments", name: "Deep tissue massage", price: 2000 },
-  { category: "Body Treatments", name: "Hot stone massage", price: 2500 },
-  { category: "Body Treatments", name: "Body scrub", price: 1800 },
-  { category: "Body Treatments", name: "Body wrap", price: 2200 },
-  { category: "Body Treatments", name: "Cellulite treatment", price: 3000 },
-  { category: "Hair Removal", name: "Eyebrow waxing", price: 300 },
-  { category: "Hair Removal", name: "Lip waxing", price: 250 },
-  { category: "Hair Removal", name: "Chin waxing", price: 300 },
-  { category: "Hair Removal", name: "Full face waxing", price: 800 },
-  { category: "Hair Removal", name: "Arm waxing", price: 600 },
-  { category: "Hair Removal", name: "Leg waxing", price: 1000 },
-  { category: "Hair Removal", name: "Bikini waxing", price: 800 },
-  { category: "Hair Removal", name: "Underarm waxing", price: 400 },
-  { category: "Hair Removal", name: "Laser hair removal", price: 1500 },
-  { category: "Makeup", name: "Day makeup", price: 1200 },
-  { category: "Makeup", name: "Evening makeup", price: 1500 },
-  { category: "Makeup", name: "Glam makeup", price: 2000 },
-  { category: "Makeup", name: "Bridal makeup", price: 3000 },
-  { category: "Makeup", name: "Photoshoot makeup", price: 1800 },
-  { category: "Makeup", name: "Prom makeup", price: 1600 },
-  { category: "Makeup", name: "Makeup trial", price: 1000 },
-  { category: "Bridal Services", name: "Bridal hair styling", price: 2500 },
-  { category: "Bridal Services", name: "Bridal makeup", price: 3000 },
-  { category: "Bridal Services", name: "Bridal skincare prep", price: 2000 },
-  { category: "Bridal Services", name: "Full bridal package", price: 5000 }
-]
+const services = ref([])
+const specialists = ref([])
+const employeeServices = ref([])
 
-const categories = computed(() => [...new Set(services.map(s => s.category))])
+onMounted(async () => {
+  const { data: servicesData, error: servicesError } = await supabase
+      .from('services')
+      .select('*')
 
-const specialists = [
-  'Any',
-  'Anna',
-  'Maria',
-  'Sophia'
-]
+  console.log('servicesData:', servicesData)
+  console.log('servicesError:', servicesError)
+
+  if (servicesError) {
+    console.error('Services error:', servicesError)
+  } else {
+    services.value = servicesData || []
+  }
+
+  const { data: employeesData, error: employeesError } = await supabase
+      .from('employees')
+      .select('*')
+
+  console.log('employeesData:', employeesData)
+  console.log('employeesError:', employeesError)
+
+  if (employeesError) {
+    console.error('Employees error:', employeesError)
+  } else {
+    specialists.value = employeesData || []
+  }
+
+  const { data: employeeServicesData, error: employeeServicesError } = await supabase
+      .from('employee_services')
+      .select('*')
+
+  if (employeeServicesError) {
+    console.error('Employee services error:', employeeServicesError)
+  } else {
+    employeeServices.value = employeeServicesData || []
+  }
+
+})
+
+const categories = computed(() => [...new Set(services.value.map(s => s.category))])
+
 
 const selectedCategoriesSummary = computed(() => {
   return form.selectedServices
-    .map(s => `${s.service || 'Unnamed'} – ${s.time || '--:--'} – ${s.specialist || 'Any'}`)
-    .join(', ')
+      .map(s => {
+        const specialist = specialists.value.find(e => e.id === s.specialist_id)
+        return `${s.service || 'Unnamed'} – ${s.time || '--:--'} – ${specialist ? specialist.full_name : 'No specialist'}`
+      })
+      .join(', ')
 })
 
 const totalPrice = computed(() => {
@@ -99,7 +82,15 @@ const totalPrice = computed(() => {
 })
 
 const addService = () => {
-  form.selectedServices.push({ category: '', service: '', price: 0, time: '', specialist: '' })
+  form.selectedServices.push({
+    category: '',
+    service: '',
+    service_id: null,
+    price: 0,
+    duration_minutes: 0,
+    time: '',
+    specialist_id: null
+  })
 }
 
 const removeService = (index) => {
@@ -109,65 +100,118 @@ const removeService = (index) => {
 }
 
 const getServicesByCategory = (category) => {
-  return services.filter(s => s.category === category)
+  return services.value.filter(s => s.category === category)
+}
+
+const getSpecialistsByService = (serviceId) => {
+  if (!serviceId) return []
+
+  const employeeIds = employeeServices.value
+      .filter(row => row.service_id === serviceId)
+      .map(row => row.employee_id)
+
+  return specialists.value.filter(employee =>
+      employeeIds.includes(employee.id)
+  )
 }
 
 const updateService = (index, field, value) => {
   if (field === 'category') {
     form.selectedServices[index].category = value
     form.selectedServices[index].service = ''
+    form.selectedServices[index].service_id = null
     form.selectedServices[index].price = 0
-  } else if (field === 'service') {
-    const selectedService = services.find(s => s.name === value && s.category === form.selectedServices[index].category)
+    form.selectedServices[index].duration_minutes = 0
+    form.selectedServices[index].specialist_id = null
+  }
+
+  if (field === 'service') {
+    const selectedService = services.value.find(
+        s => s.name === value && s.category === form.selectedServices[index].category
+    )
+
     form.selectedServices[index].service = value
-    form.selectedServices[index].price = selectedService ? selectedService.price : 0
+    form.selectedServices[index].service_id = selectedService ? selectedService.id : null
+    form.selectedServices[index].price = selectedService ? Number(selectedService.price) : 0
+    form.selectedServices[index].duration_minutes = selectedService ? selectedService.duration_minutes : 60
+    form.selectedServices[index].specialist_id = null
   }
 }
 
-const validateServiceTime = (time) => {
-  if (time) {
-    const [hours] = time.split(':').map(Number)
-    return hours >= 9 && hours <= 21
+  const validateServiceTime = (time) => {
+    if (time) {
+      const [hours] = time.split(':').map(Number)
+      return hours >= 9 && hours <= 21
+    }
+    return true
   }
-  return true
-}
 
-const validateForm = () => {
-  errors.value = {}
-  if (!form.name.trim()) errors.value.name = 'Name is required'
-  if (!form.phone.trim()) errors.value.phone = 'Phone is required'
-  if (!form.email.trim()) errors.value.email = 'Email is required'
-  else if (!/\S+@\S+\.\S+/.test(form.email)) errors.value.email = 'Invalid email'
-  if (form.selectedServices.length === 0) errors.value.services = 'At least one service is required'
-  else {
-    for (let i = 0; i < form.selectedServices.length; i++) {
-      const service = form.selectedServices[i]
-      if (!service.time) {
-        errors.value.services = `Time is required for all services`
-        break
-      }
-      if (!validateServiceTime(service.time)) {
-        errors.value.services = `All times must be between 09:00 and 21:00`
-        break
+  const validateForm = () => {
+    errors.value = {}
+    if (!form.name.trim()) errors.value.name = 'Name is required'
+    if (!form.phone.trim()) errors.value.phone = 'Phone is required'
+    if (!form.email.trim()) errors.value.email = 'Email is required'
+    else if (!/\S+@\S+\.\S+/.test(form.email)) errors.value.email = 'Invalid email'
+    if (form.selectedServices.length === 0) errors.value.services = 'At least one service is required'
+    else {
+      for (let i = 0; i < form.selectedServices.length; i++) {
+        const service = form.selectedServices[i]
+
+        if (!service.service_id) {
+          errors.value.services = `Please select a service`
+          break
+        }
+
+        if (!service.time) {
+          errors.value.services = `Time is required for all services`
+          break
+        }
+        if (!validateServiceTime(service.time)) {
+          errors.value.services = `All times must be between 09:00 and 21:00`
+          break
+        }
+        if (!service.specialist_id) {
+          errors.value.services = 'Please select a specialist for all services'
+          break
+        }
       }
     }
+    if (!form.date) errors.value.date = 'Date is required'
+    return Object.keys(errors.value).length === 0
   }
-  if (!form.date) errors.value.date = 'Date is required'
-  return Object.keys(errors.value).length === 0
+
+  const submitForm = async () => {
+    if (!validateForm()) return
+
+    for (const selectedService of form.selectedServices) {
+      const startAt = new Date(`${form.date}T${selectedService.time}`)
+      const endAt = new Date(
+          startAt.getTime() + selectedService.duration_minutes * 60000
+      )
+
+      const {error} = await supabase.from('appointments').insert([
+        {
+          customer_name: form.name,
+          customer_phone: form.phone,
+          customer_email: form.email,
+          service_id: selectedService.service_id,
+          employee_id: selectedService.specialist_id,
+          start_at: startAt.toISOString(),
+          end_at: endAt.toISOString(),
+          notes: form.notes
+        }
+      ])
+
+      if (error) {
+        console.error('Booking error:', error)
+        alert(error.message)
+        return
+      }
+    }
+
+    isSubmitted.value = true
 }
 
-const submitForm = () => {
-  if (validateForm()) {
-    // Mock submission
-    console.log('Form submitted:', form)
-    isSubmitted.value = true
-    // Reset form
-    Object.keys(form).forEach(key => {
-      if (key === 'selectedServices') form[key] = [{ category: '', service: '', price: 0, time: '', specialist: '' }]
-      else form[key] = ''
-    })
-  }
-}
 </script>
 
 <template>
@@ -205,9 +249,15 @@ const submitForm = () => {
               </option>
             </select>
             <input v-model="selectedService.time" type="time" :disabled="!selectedService.service" min="09:00" max="21:00" class="service-time-input" />
-            <select v-model="selectedService.specialist" :disabled="!selectedService.service">
-              <option value="">Specialist</option>
-              <option v-for="specialist in specialists" :key="specialist" :value="specialist">{{ specialist }}</option>
+            <select v-model="selectedService.specialist_id" :disabled="!selectedService.service_id">
+              <option :value="null">Specialist</option>
+              <option
+                  v-for="specialist in getSpecialistsByService(selectedService.service_id)"
+                  :key="specialist.id"
+                  :value="specialist.id"
+              >
+                {{ specialist.full_name }}
+              </option>
             </select>
             <button type="button" @click="removeService(index)" :disabled="form.selectedServices.length === 1" class="remove-service-btn">Remove</button>
           </div>
