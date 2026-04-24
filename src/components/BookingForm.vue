@@ -5,7 +5,7 @@ const form = reactive({
   name: '',
   phone: '',
   email: '',
-  selectedServices: [],
+  selectedServices: [{ category: '', service: '', price: 0, time: '', specialist: '' }],
   date: '',
   notes: ''
 })
@@ -103,7 +103,9 @@ const addService = () => {
 }
 
 const removeService = (index) => {
-  form.selectedServices.splice(index, 1)
+  if (form.selectedServices.length > 1) {
+    form.selectedServices.splice(index, 1)
+  }
 }
 
 const getServicesByCategory = (category) => {
@@ -161,7 +163,7 @@ const submitForm = () => {
     isSubmitted.value = true
     // Reset form
     Object.keys(form).forEach(key => {
-      if (key === 'selectedServices') form[key] = []
+      if (key === 'selectedServices') form[key] = [{ category: '', service: '', price: 0, time: '', specialist: '' }]
       else form[key] = ''
     })
   }
@@ -207,7 +209,7 @@ const submitForm = () => {
               <option value="">Specialist</option>
               <option v-for="specialist in specialists" :key="specialist" :value="specialist">{{ specialist }}</option>
             </select>
-            <button type="button" @click="removeService(index)" class="remove-service-btn">Remove</button>
+            <button type="button" @click="removeService(index)" :disabled="form.selectedServices.length === 1" class="remove-service-btn">Remove</button>
           </div>
           <button type="button" @click="addService" class="add-service-btn">Add Another Service</button>
           <span v-if="errors.services" class="error">{{ errors.services }}</span>
@@ -457,6 +459,12 @@ const submitForm = () => {
   background: #7a6d63;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   transform: translateY(-1px);
+}
+
+.remove-service-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .remove-service-btn:active,
