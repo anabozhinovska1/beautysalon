@@ -94,7 +94,7 @@ const getServicesByCategory = (category) => {
         >
           <div class="service-header">
             <h3>{{ cat }}</h3>
-            <span class="toggle-icon">{{ selectedCategory === cat ? '−' : '+' }}</span>
+            <span class="toggle-arrow"></span>
           </div>
           <Transition name="expand">
             <div v-if="selectedCategory === cat" class="service-items">
@@ -171,14 +171,23 @@ const getServicesByCategory = (category) => {
   font-family: var(--font-serif);
 }
 
-.toggle-icon {
-  font-size: 1.5rem;
-  font-weight: bold;
+.toggle-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
   color: var(--color-accent);
-  transition: transform 0.3s;
+  font-size: 1rem;
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
 }
 
-.service-category.expanded .toggle-icon {
+.toggle-arrow::before {
+  content: '↓';
+}
+
+.service-category.expanded .toggle-arrow {
   transform: rotate(180deg);
 }
 
