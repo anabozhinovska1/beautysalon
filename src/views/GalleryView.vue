@@ -1,8 +1,5 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
-
-const router = useRouter()
 
 const galleryImages = ref([
   // Hair images
@@ -187,15 +184,6 @@ onMounted(() => {
             <polyline points="9,18 15,12 9,6"></polyline>
           </svg>
         </button>
-        <div class="caption">
-          <h3>{{ galleryImages[currentIndex].title }} – {{ galleryImages[currentIndex].description }}</h3>
-          <button class="cta-btn" @click="router.push('/booking')">
-            Book your appointment now
-            <svg class="heart-icon" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-            </svg>
-          </button>
-        </div>
       </div>
     </div>
   </div>
@@ -394,48 +382,6 @@ onMounted(() => {
   right: -60px;
 }
 
-.caption {
-  margin-top: 1rem;
-  text-align: center;
-  background: rgba(0, 0, 0, 0.6);
-  padding: 1rem;
-  border-radius: 8px;
-  backdrop-filter: blur(5px);
-}
-
-.caption h3 {
-  margin: 0 0 1rem 0;
-  font-size: 1.8rem;
-  font-weight: 500;
-  color: white;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
-}
-
-.cta-btn {
-  background: var(--color-background-soft);
-  color: var(--color-text-primary);
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: 500;
-  transition: background 0.3s ease, transform 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0 auto;
-}
-
-.cta-btn:hover {
-  background: var(--color-text-secondary);
-  transform: translateY(-2px);
-}
-
-.heart-icon {
-  width: 1.2rem;
-  height: 1.2rem;
-}
 
 @keyframes fadeIn {
   from { opacity: 0; }

@@ -1,21 +1,23 @@
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { supabase } from '../lib/supabase'
+import Datepicker from 'vue3-datepicker'
 
 const form = reactive({
   name: '',
   phone: '',
   email: '',
-      selectedServices: [{
-        category: '',
-        service: '',
-        service_id: null,
-        price: 0,
-        duration_minutes: 0,
-        time: '',
-        specialist_id: null
-      }],
-  date: '',
+  selectedServices: [{
+    category: '',
+    service: '',
+    service_id: null,
+    price: 0,
+    duration_minutes: 0,
+    date: null,
+    selectedTime: '',
+    specialist_id: null,
+    availableSlots: []
+  }],
   notes: ''
 })
 
@@ -62,19 +64,57 @@ onMounted(async () => {
   } else {
     employeeServices.value = employeeServicesData || []
   }
-
 })
+
+// Watch for date changes and regenerate slots
+watch(
+  () => form.selectedServices.map(s => s.date),
+  (newDates) => {
+    form.selectedServices.forEach((service, index) => {
+      service.availableSlots = getAvailableTimeSlots(index)
+      service.selectedTime = ''
+    })
+  },
+  { deep: true }
+)
+
+// Watch for specialist changes and re-filter slots
+watch(
+  () => form.selectedServices.map(s => s.specialist_id),
+  (newSpecialists) => {
+    form.selectedServices.forEach((service, index) => {
+      service.availableSlots = getAvailableTimeSlots(index)
+      service.selectedTime = ''
+    })
+  },
+  { deep: true }
+)
 
 const categories = computed(() => [...new Set(services.value.map(s => s.category))])
 
+const isSunday = (date) => {
+  if (!date) return false
+  return new Date(date).getDay() === 0
+}
+
+const formatDateForDisplay = (date) => {
+  if (!date) return '--'
+  const d = new Date(date)
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  return `${days[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}`
+}
 
 const selectedCategoriesSummary = computed(() => {
   return form.selectedServices
-      .map(s => {
-        const specialist = specialists.value.find(e => e.id === s.specialist_id)
-        return `${s.service || 'Unnamed'} – ${s.time || '--:--'} – ${specialist ? specialist.full_name : 'No specialist'}`
-      })
-      .join(', ')
+    .map(s => {
+      const specialist = specialists.value.find(e => e.id === s.specialist_id)
+      const date = formatDateForDisplay(s.date)
+      const time = s.selectedTime || '--:--'
+      const spec = specialist ? specialist.full_name : 'No specialist'
+      return `${s.service || 'Unnamed'} – ${date} – ${time} – ${spec}`
+    })
+    .join(', ')
 })
 
 const totalPrice = computed(() => {
@@ -88,8 +128,10 @@ const addService = () => {
     service_id: null,
     price: 0,
     duration_minutes: 0,
-    time: '',
-    specialist_id: null
+    date: null,
+    selectedTime: '',
+    specialist_id: null,
+    availableSlots: []
   })
 }
 
@@ -123,11 +165,12 @@ const updateService = (index, field, value) => {
     form.selectedServices[index].price = 0
     form.selectedServices[index].duration_minutes = 0
     form.selectedServices[index].specialist_id = null
+    form.selectedServices[index].selectedTime = ''
   }
 
   if (field === 'service') {
     const selectedService = services.value.find(
-        s => s.name === value && s.category === form.selectedServices[index].category
+      s => s.name === value && s.category === form.selectedServices[index].category
     )
 
     form.selectedServices[index].service = value
@@ -135,16 +178,61 @@ const updateService = (index, field, value) => {
     form.selectedServices[index].price = selectedService ? Number(selectedService.price) : 0
     form.selectedServices[index].duration_minutes = selectedService ? selectedService.duration_minutes : 60
     form.selectedServices[index].specialist_id = null
+    form.selectedServices[index].selectedTime = ''
   }
 }
 
-  const validateServiceTime = (time) => {
-    if (time) {
-      const [hours] = time.split(':').map(Number)
-      return hours >= 9 && hours <= 21
-    }
-    return true
+const getAvailableTimeSlots = (serviceIndex) => {
+  const service = form.selectedServices[serviceIndex]
+  if (!service.date) return []
+
+  // Determine day of week: 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  const day = new Date(service.date).getDay()
+
+  // Define working hours per day
+  let startHour, endHour
+  if (day === 0) {
+    // Sunday: Closed
+    return []
+  } else if (day >= 1 && day <= 5) {
+    // Monday–Friday: 09:00 – 19:00
+    startHour = 9
+    endHour = 19
+  } else if (day === 6) {
+    // Saturday: 08:00 – 17:00
+    startHour = 8
+    endHour = 17
   }
+
+  const slots = []
+
+  // Generate 30-minute slots
+  for (let hour = startHour; hour < endHour; hour++) {
+    for (let minute = 0; minute < 60; minute += 30) {
+      const startMin = String(minute).padStart(2, '0')
+      const endHour = minute + 30 >= 60 ? hour + 1 : hour
+      const endMin = String((minute + 30) % 60).padStart(2, '0')
+
+      const startTime = `${String(hour).padStart(2, '0')}:${startMin}`
+      const endTime = `${String(endHour).padStart(2, '0')}:${endMin}`
+
+      slots.push({
+        start: startTime,
+        end: endTime,
+        display: `${startTime} - ${endTime}`
+      })
+    }
+  }
+
+  // Filter by specialist availability if specialist is selected
+  if (service.specialist_id) {
+    // TODO: Filter based on specialist's booked appointments
+    // For now, return all slots (ready for API integration)
+    return slots
+  }
+
+  return slots
+}
 
   const validateForm = () => {
     errors.value = {}
@@ -162,21 +250,22 @@ const updateService = (index, field, value) => {
           break
         }
 
-        if (!service.time) {
-          errors.value.services = `Time is required for all services`
+        if (!service.date) {
+          errors.value.services = `Please select a date for all services`
           break
         }
-        if (!validateServiceTime(service.time)) {
-          errors.value.services = `All times must be between 09:00 and 21:00`
+
+        if (!service.selectedTime) {
+          errors.value.services = `Please select a time for all services`
           break
         }
+
         if (!service.specialist_id) {
           errors.value.services = 'Please select a specialist for all services'
           break
         }
       }
     }
-    if (!form.date) errors.value.date = 'Date is required'
     return Object.keys(errors.value).length === 0
   }
 
@@ -184,9 +273,20 @@ const updateService = (index, field, value) => {
     if (!validateForm()) return
 
     for (const selectedService of form.selectedServices) {
-      const startAt = new Date(`${form.date}T${selectedService.time}`)
+      // Convert Date object to ISO string format YYYY-MM-DD
+      let dateString
+      if (selectedService.date instanceof Date) {
+        const year = selectedService.date.getFullYear()
+        const month = String(selectedService.date.getMonth() + 1).padStart(2, '0')
+        const day = String(selectedService.date.getDate()).padStart(2, '0')
+        dateString = `${year}-${month}-${day}`
+      } else {
+        dateString = selectedService.date
+      }
+
+      const startAt = new Date(`${dateString}T${selectedService.selectedTime}`)
       const endAt = new Date(
-          startAt.getTime() + selectedService.duration_minutes * 60000
+        startAt.getTime() + selectedService.duration_minutes * 60000
       )
 
       const {error} = await supabase.from('appointments').insert([
@@ -237,29 +337,62 @@ const updateService = (index, field, value) => {
       <div class="form-row">
         <div class="form-group form-group-full">
           <label>Services *</label>
-          <div v-for="(selectedService, index) in form.selectedServices" :key="index" class="service-selection">
-            <select v-model="selectedService.category" @change="updateService(index, 'category', selectedService.category)">
-              <option value="">Category</option>
-              <option v-for="category in categories" :key="category" :value="category">{{ category }}</option>
-            </select>
-            <select v-model="selectedService.service" :disabled="!selectedService.category" @change="updateService(index, 'service', selectedService.service)">
-              <option value="">Service</option>
-              <option v-for="service in getServicesByCategory(selectedService.category)" :key="service.name" :value="service.name">
-                {{ service.name }}
-              </option>
-            </select>
-            <input v-model="selectedService.time" type="time" :disabled="!selectedService.service" min="09:00" max="21:00" class="service-time-input" />
-            <select v-model="selectedService.specialist_id" :disabled="!selectedService.service_id">
-              <option :value="null">Specialist</option>
-              <option
+          <div v-for="(selectedService, index) in form.selectedServices" :key="index" class="service-block">
+            <div class="service-selection">
+              <select v-model="selectedService.category" @change="updateService(index, 'category', selectedService.category)">
+                <option value="">Category</option>
+                <option v-for="category in categories" :key="category" :value="category">{{ category }}</option>
+              </select>
+              <select v-model="selectedService.service" :disabled="!selectedService.category" @change="updateService(index, 'service', selectedService.service)">
+                <option value="">Service</option>
+                <option v-for="service in getServicesByCategory(selectedService.category)" :key="service.name" :value="service.name">
+                  {{ service.name }}
+                </option>
+              </select>
+            <!-- Date Picker -->
+            <div class="date-picker-wrapper">
+              <label class="date-label">Select Date *</label>
+              <Datepicker
+                v-model="selectedService.date"
+                :disabled-dates="{ days: [0], past: true }"
+                placeholder="Pick a date"
+                :enable-time-picker="false"
+                class="custom-datepicker"
+              />
+            </div>
+              <select v-model="selectedService.specialist_id" :disabled="!selectedService.service_id" class="service-specialist-select">
+                <option :value="null">Specialist</option>
+                <option
                   v-for="specialist in getSpecialistsByService(selectedService.service_id)"
                   :key="specialist.id"
                   :value="specialist.id"
-              >
-                {{ specialist.full_name }}
-              </option>
-            </select>
-            <button type="button" @click="removeService(index)" :disabled="form.selectedServices.length === 1" class="remove-service-btn">Remove</button>
+                >
+                  {{ specialist.full_name }}
+                </option>
+              </select>
+              <button type="button" @click="removeService(index)" :disabled="form.selectedServices.length === 1" class="remove-service-btn">Remove</button>
+            </div>
+
+            <!-- Time Slots -->
+            <div v-if="selectedService.date" class="time-slots-container">
+              <div v-if="isSunday(selectedService.date)" class="closed-message">
+                <p>We are closed on Sundays</p>
+              </div>
+              <div v-else-if="getAvailableTimeSlots(index).length > 0" class="time-slots-grid">
+                <button
+                  v-for="slot in getAvailableTimeSlots(index)"
+                  :key="slot.start"
+                  type="button"
+                  @click="selectedService.selectedTime = slot.start"
+                  :class="['time-slot', { active: selectedService.selectedTime === slot.start }]"
+                >
+                  {{ slot.display }}
+                </button>
+              </div>
+              <div v-else class="no-slots-message">
+                <p>No available slots for this date</p>
+              </div>
+            </div>
           </div>
           <button type="button" @click="addService" class="add-service-btn">Add Another Service</button>
           <span v-if="errors.services" class="error">{{ errors.services }}</span>
@@ -272,13 +405,6 @@ const updateService = (index, field, value) => {
           <span v-if="errors.email" class="error">{{ errors.email }}</span>
         </div>
         <div class="form-group">
-          <label for="date">Appointment Date *</label>
-          <input id="date" v-model="form.date" type="date" />
-          <span v-if="errors.date" class="error">{{ errors.date }}</span>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group form-group-full">
           <label for="notes">Notes</label>
           <textarea id="notes" v-model="form.notes" rows="3"></textarea>
         </div>
@@ -365,7 +491,7 @@ const updateService = (index, field, value) => {
 .service-selection {
   display: flex;
   gap: 0.75rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
   align-items: flex-start;
 }
 
@@ -374,12 +500,13 @@ const updateService = (index, field, value) => {
   min-width: 0;
 }
 
-.service-selection select:nth-of-type(4) {
-  flex: 0.9;
+.service-specialist-select {
+  flex: 1;
+  min-width: 0;
 }
 
-.service-time-input {
-  flex: 0.8;
+.service-date-input {
+  flex: 0.9;
   padding: 0.85rem;
   border: 1px solid var(--color-border);
   border-radius: 10px;
@@ -389,19 +516,68 @@ const updateService = (index, field, value) => {
   background: var(--color-background);
 }
 
-.service-time-input:hover:not(:disabled) {
+.service-date-input:hover:not(:disabled) {
   border-color: var(--color-accent);
 }
 
-.service-time-input:focus {
+.service-date-input:focus {
   outline: none;
   border-color: var(--color-accent);
   box-shadow: 0 0 0 3px rgba(201, 162, 126, 0.1);
 }
 
-.service-time-input:disabled {
+.service-date-input:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.service-block {
+  margin-bottom: 1.5rem;
+}
+
+.time-slots-container {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(201, 162, 126, 0.05);
+  border-radius: 10px;
+  border: 1px solid rgba(201, 162, 126, 0.1);
+}
+
+.time-slots-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.time-slot {
+  padding: 0.6rem 1rem;
+  background: #d4a5a5;
+  color: white;
+  border: 2px solid #d4a5a5;
+  border-radius: 50px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.time-slot:hover {
+  background: #c89090;
+  border-color: #c89090;
+  transform: translateY(-2px);
+}
+
+.time-slot.active {
+  background: #8b4545;
+  border-color: #8b4545;
+  color: white;
+  box-shadow: 0 4px 12px rgba(139, 69, 69, 0.3);
+}
+
+.time-slot.active:hover {
+  background: #7a3a3a;
+  border-color: #7a3a3a;
 }
 
 .error {
@@ -567,8 +743,18 @@ const updateService = (index, field, value) => {
 
   .service-selection select,
   .service-selection input,
+  .service-date-input,
   .remove-service-btn {
     width: 100%;
+  }
+
+  .time-slots-grid {
+    gap: 0.5rem;
+  }
+
+  .time-slot {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.8rem;
   }
 }
 
