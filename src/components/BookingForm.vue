@@ -351,7 +351,7 @@ const getAvailableTimeSlots = (serviceIndex) => {
               </select>
             <!-- Date Picker -->
             <div class="date-picker-wrapper">
-              <label class="date-label">Select Date *</label>
+              <label class="date-label"></label>
               <Datepicker
                 v-model="selectedService.date"
                 :disabled-dates="{ days: [0], past: true }"
@@ -492,12 +492,21 @@ const getAvailableTimeSlots = (serviceIndex) => {
   display: flex;
   gap: 0.75rem;
   margin-bottom: 0.5rem;
-  align-items: flex-start;
+  align-items: stretch;
 }
 
-.service-selection select {
-  flex: 1;
-  min-width: 0;
+.service-selection select,
+.custom-datepicker,
+.date-picker-wrapper,
+.remove-service-btn {
+  height: 3rem;
+  box-sizing: border-box;
+}
+
+.date-picker-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .service-specialist-select {
@@ -744,6 +753,8 @@ const getAvailableTimeSlots = (serviceIndex) => {
   .service-selection select,
   .service-selection input,
   .service-date-input,
+  .custom-datepicker,
+  .date-picker-wrapper,
   .remove-service-btn {
     width: 100%;
   }
