@@ -2,14 +2,14 @@
   <footer class="footer">
     <div class="footer-container">
       <div class="footer-section">
-        <h3>Bagira Beauty Salon</h3>
+        <h3>Secret Beauty Studio</h3>
         <p>Luxury beauty services in the heart of the city.</p>
       </div>
       <div class="footer-section">
         <h4>Contact</h4>
         <p>123 Beauty Street<br>City, State 12345</p>
         <p>Phone: <a href="tel:+1234567890">+1 (234) 567-890</a></p>
-        <p>Email: <a href="mailto:info@bagira.com">info@bagira.com</a></p>
+        <p>Email: <a href="mailto:info@secretbeautystudio.com">info@secretbeautystudio.com</a></p>
       </div>
       <div class="footer-section">
         <h4>Hours</h4>
@@ -27,7 +27,7 @@
       </div>
     </div>
     <div class="footer-bottom">
-      <p>&copy; 2024 Bagira Beauty Salon. All rights reserved.</p>
+      <p>&copy; 2024 Secret Beauty Studio. All rights reserved.</p>
     </div>
   </footer>
 </template>

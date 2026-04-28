@@ -5,8 +5,8 @@
         <img src="https://images.unsplash.com/photo-1582095133179-bfd08e2fc6b3?w=600&h=400&fit=crop" alt="Salon interior" />
       </div>
       <div class="about-content">
-        <h2>About Bagira</h2>
-        <p>At Bagira Beauty Salon, we believe beauty is an art form. Our team of skilled professionals is dedicated to providing personalized treatments that enhance your natural beauty and boost your confidence.</p>
+        <h2>About Secret Beauty Studio</h2>
+        <p>At Secret Beauty Studio, we believe beauty is an art form. Our team of skilled professionals is dedicated to providing personalized treatments that enhance your natural beauty and boost your confidence.</p>
         <p>With years of experience and a passion for excellence, we offer a serene environment where you can relax and rejuvenate.</p>
         <div class="promo-cards">
           <div class="promo-card">

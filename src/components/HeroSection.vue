@@ -2,7 +2,7 @@
   <section class="hero">
     <div class="hero-container">
       <div class="hero-content">
-        <h1>Beauty studio Bagira</h1>
+        <h1>Secret Beauty Studio</h1>
         <p>Indulge in luxury beauty treatments tailored to your unique style. Our expert team provides exceptional service in a serene, elegant environment.</p>
         <router-link to="/booking" class="cta-button">Book now</router-link>
       </div>

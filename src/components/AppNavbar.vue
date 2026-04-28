@@ -12,7 +12,7 @@ const toggleMenu = () => {
   <nav class="navbar">
     <div class="nav-container">
       <div class="nav-logo">
-        <router-link to="/">Bagira</router-link>
+        <router-link to="/">Secret Beauty Studio</router-link>
       </div>
       <div class="nav-links" :class="{ 'nav-links--open': isMenuOpen }">
         <router-link to="/" @click="isMenuOpen = false">Home</router-link>

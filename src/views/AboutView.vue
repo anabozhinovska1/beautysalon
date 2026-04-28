@@ -6,7 +6,7 @@ import AboutSection from '../components/AboutSection.vue'
   <div class="about-page">
     <div class="page-header">
       <h1>About Us</h1>
-      <p>Learn more about Bagira Beauty Salon.</p>
+      <p>Learn more about Secret Beauty Studio.</p>
     </div>
     <AboutSection />
   </div>

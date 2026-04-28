@@ -6,7 +6,7 @@ import ContactSection from '../components/ContactSection.vue'
   <div class="contact-page">
     <div class="page-header">
       <h1>Contact Us</h1>
-      <p>Get in touch with Bagira Beauty Salon.</p>
+      <p>Get in touch with Secret Beauty Studio.</p>
     </div>
     <ContactSection />
   </div>
